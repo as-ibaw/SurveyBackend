@@ -11,7 +11,7 @@ const questionSchema = new mongoose.Schema({
       'checkbox',
       'toggle',
       'multipleChoice',
-      'selection',
+      'radio',
       'stars',
     ],
   },
@@ -25,14 +25,18 @@ const surveySchema = new mongoose.Schema({
   description: { type: String },
   questions: [questionSchema],
   createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    ref: 'User',
+    azureID: { type: String, required: true },
+    name: { type: String, required: true },
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+  expirationDate: { type: Date, required: true },
+  status: {
+    type: String,
+    enum: ['Offen', 'Aktiv', 'Abgeschlossen'],
+    default: 'Offen',
+  },
   viewsCount: { type: Number, default: 0 },
-  active: { type: Boolean, default: true },
 });
 
 export default mongoose.model('Survey', surveySchema);

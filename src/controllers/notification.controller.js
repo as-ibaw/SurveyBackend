@@ -1,8 +1,5 @@
 import Notification from '../models/notification.models.js';
-import {
-  getNotifications,
-  readNotification,
-} from '../services/notification.service.js';
+import { getNotifications } from '../services/notification.service.js';
 
 export const list = async (req, res) => {
   // #swagger.tags = ['Notification']
@@ -29,26 +26,5 @@ export const list = async (req, res) => {
       message:
         'Ein Fehler ist aufgetreten beim Versuch, die Benachrichtigungen abzurufen.',
     });
-  }
-};
-
-export const setRead = async (req, res, next) => {
-  // #swagger.tags = ['Notification']
-  try {
-    const { id } = req.params;
-    const updatedNotification = await readNotification(id);
-    if (!updatedNotification) {
-      return res
-        .status(404)
-        .send({ message: 'Benachrichtigung nicht gefunden.' });
-    }
-
-    res.status(200).send(updatedNotification);
-  } catch (err) {
-    return res.status(500).send({
-      message:
-        'Ein Fehler ist beim Markieren als Gelesen der Benachrichtigung aufgetreten',
-    });
-    next(err);
   }
 };

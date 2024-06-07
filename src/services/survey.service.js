@@ -2,17 +2,44 @@ import Response from '../models/response.models.js';
 import Survey from '../models/survey.models.js';
 import { createNotification } from './notification.service.js';
 
-export const getSurveys = async (skip = 0, limit = 10) => {
+const updateSurveyStatus = async (survey) => {
+  const now = new Date();
+  if (survey.expirationDate <= now) {
+    survey.status = 'Abgeschlossen';
+  } else {
+    const responseCount = await Response.countDocuments({
+      surveyId: survey._id,
+    });
+    survey.status = responseCount > 0 ? 'Aktiv' : 'Offen';
+  }
+  await survey.save();
+};
+
+export const getSurveys = async (skip = 0, limit = 10, status) => {
   try {
-    return Survey.find().skip(skip).limit(limit);
+    const query = status ? { status } : {};
+    const surveys = await Survey.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    for (const survey of surveys) {
+      await updateSurveyStatus(survey);
+    }
+    return surveys;
   } catch (error) {
     console.error('Fehler beim Abrufen der Umfragen:', error);
+    throw error;
   }
 };
 
 export const getSurvey = async (id) => {
   try {
-    return Survey.findById(id);
+    const survey = await Survey.findById(id);
+    if (survey) {
+      await updateSurveyStatus(survey);
+    }
+    return survey;
   } catch (error) {
     console.error('Fehler beim Abrufen der Umfrage:', error);
   }
@@ -52,12 +79,22 @@ export const removeSurvey = async (id) => {
 
 export const createResponse = async (surveyId, responses) => {
   try {
-    const newResponse = await Response.create({
-      surveyId,
-      responses,
+    const updatedResponses = responses.map((response) => {
+      return response;
     });
 
-    await createNotification(surveyId);
+    const newResponse = await Response.create({
+      surveyId,
+      responses: updatedResponses,
+    });
+
+    const survey = await Survey.findById(surveyId);
+    if (!survey) {
+      throw new Error('Umfrage nicht gefunden');
+    }
+
+    const surveyName = survey.title;
+    await createNotification(surveyId, surveyName);
 
     return newResponse;
   } catch (error) {
@@ -69,7 +106,7 @@ export const getSurveyResult = async (surveyId) => {
   try {
     const survey = await Survey.findById(surveyId).lean();
     if (!survey) {
-      throw new Error('Survey not found');
+      throw new Error('Umfrage nicht gefunden');
     }
     const responseCount = await Response.countDocuments({ surveyId });
     const viewsCount = survey.viewsCount || 0;
@@ -97,41 +134,49 @@ export const getSurveyResult = async (surveyId) => {
       let stat = {
         questionText: question.questionText,
         type: question.type,
+        answers: {},
       };
 
       switch (question.type) {
         case 'checkbox':
         case 'toggle':
           stat.answers = questionResponses.reduce((acc, { answer }) => {
-            acc[answer] = (acc[answer] || 0) + 1;
+            if (Array.isArray(answer)) {
+              answer.forEach((ans) => {
+                acc[ans] = (acc[ans] || 0) + 1;
+              });
+            } else {
+              acc[answer] = (acc[answer] || 0) + 1;
+            }
             return acc;
           }, {});
           break;
         case 'multipleChoice':
+        case 'radio':
           let optionCounts = question.options.reduce((acc, option) => {
             acc[option] = 0;
             return acc;
           }, {});
 
-          questionResponses.forEach((response) => {
-            if (response && optionCounts.hasOwnProperty(response.answer)) {
-              optionCounts[response.answer] += 1;
+          questionResponses.forEach(({ answer }) => {
+            if (Array.isArray(answer)) {
+              answer.forEach((ans) => {
+                if (optionCounts.hasOwnProperty(ans)) {
+                  optionCounts[ans] += 1;
+                }
+              });
+            } else {
+              if (optionCounts.hasOwnProperty(answer)) {
+                optionCounts[answer] += 1;
+              }
             }
           });
 
           stat.answers = optionCounts;
           break;
-        case 'selection':
-          stat.answers = questionResponses.reduce((acc, { answer }) => {
-            answer.forEach((ans) => {
-              acc[ans] = (acc[ans] || 0) + 1;
-            });
-            return acc;
-          }, {});
-          break;
         case 'stars':
           const totalStars = questionResponses.reduce(
-            (total, { answer }) => total + answer,
+            (total, { answer }) => total + parseInt(answer, 10),
             0
           );
           stat.averageRating = questionResponses.length
@@ -159,9 +204,11 @@ export const getSurveyStatistics = async () => {
   try {
     const totalSurveys = await Survey.countDocuments();
 
-    const activeSurveys = await Survey.countDocuments({ active: true });
+    const activeSurveys = await Survey.countDocuments({ status: 'Aktiv' });
 
-    const completedSurveys = await Survey.countDocuments({ active: false });
+    const completedSurveys = await Survey.countDocuments({
+      status: 'Abgeschlossen',
+    });
 
     const totalViews = await Survey.aggregate([
       { $group: { _id: null, totalViews: { $sum: '$viewsCount' } } },

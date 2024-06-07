@@ -13,8 +13,17 @@ export const validateSurveyCreate = [
   body('createdBy')
     .notEmpty()
     .withMessage('Ersteller ist erforderlich.')
-    .isString()
-    .withMessage('Ersteller muss ein Text sein.'),
+    .isObject()
+    .withMessage('Ersteller muss ein Objekt sein.')
+    .custom((value) => {
+      if (!value.azureID || typeof value.azureID !== 'string') {
+        throw new Error('azureID ist erforderlich und muss ein String sein.');
+      }
+      if (!value.name || typeof value.name !== 'string') {
+        throw new Error('Name ist erforderlich und muss ein String sein.');
+      }
+      return true;
+    }),
   body('questions.*.questionText')
     .notEmpty()
     .withMessage('Fragetext ist erforderlich.')
@@ -29,7 +38,7 @@ export const validateSurveyCreate = [
       'checkbox',
       'toggle',
       'multipleChoice',
-      'selection',
+      'radio',
       'stars',
     ])
     .withMessage('Ungültiger Fragetyp.'),
@@ -71,10 +80,6 @@ export const validateSurveyUpdate = [
     .optional()
     .isString()
     .withMessage('Die Beschreibung muss ein Text sein.'),
-  body('active')
-    .optional()
-    .isBoolean()
-    .withMessage('Aktivstatus muss ein Boolean sein.'),
   body('questions')
     .optional()
     .isArray()
@@ -91,7 +96,7 @@ export const validateSurveyUpdate = [
       'checkbox',
       'toggle',
       'multipleChoice',
-      'selection',
+      'radio',
       'stars',
     ])
     .withMessage('Ungültiger Fragetyp.'),

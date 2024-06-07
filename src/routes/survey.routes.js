@@ -18,15 +18,18 @@ import {
   validateSurveyUpdate,
 } from '../validations/survey.validations.js';
 
-const router = express.Router();
-router.get('/statistics', listStats);
+import { checkJwt } from '../utils/checkJwt.js';
 
-router.get('/:id', get);
+const router = express.Router();
+
+router.get('/statistics', checkJwt, listStats);
+router.get('/:id', checkJwt, get);
 router.get('/:id/public', getPublic);
-router.get('/', list);
+router.get('/', checkJwt, list);
 
 router.post(
   '/',
+  checkJwt,
   validateSurveyCreate,
   (req, res, next) => {
     const errors = validationResult(req);
@@ -40,6 +43,7 @@ router.post(
 
 router.put(
   '/:id',
+  checkJwt,
   validateSurveyUpdate,
   (req, res, next) => {
     const errors = validationResult(req);
@@ -51,7 +55,7 @@ router.put(
   update
 );
 
-router.delete('/:id', remove);
+router.delete('/:id', checkJwt, remove);
 
 router.post(
   '/:id/responses',
@@ -66,6 +70,6 @@ router.post(
   response
 );
 
-router.get('/:id/result', getResult);
+router.get('/:id/result', checkJwt, getResult);
 
 export default router;
