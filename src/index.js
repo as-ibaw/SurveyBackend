@@ -15,10 +15,12 @@ connectDb();
 
 const app = express();
 const port = process.env.PORT || 3000;
+const corsOrigin = process.env.CORS_ORIGIN;
 
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: corsOrigin,
   optionsSuccessStatus: 200,
+  allowedHeaders: ['Authorization'],
 };
 
 app.use(cors(corsOptions));
@@ -35,7 +37,7 @@ const server = app.listen(port, () => {
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: corsOrigin,
     allowedHeaders: ['Authorization'],
   },
 });
