@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import jwksRsa from 'jwks-rsa';
 
 const jwksClient = jwksRsa({
-  jwksUri: `https://login.microsoftonline.com/${process.env.PORT}/discovery/v2.0/keys`,
+  jwksUri: `https://login.microsoftonline.com/${process.env.TENANT_ID}/discovery/v2.0/keys`,
   cache: true,
   rateLimit: true,
 });
