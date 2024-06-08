@@ -19,7 +19,7 @@ const corsOrigin = process.env.CORS_ORIGIN;
 const corsOptions = {
   origin: corsOrigin,
   optionsSuccessStatus: 200,
-  allowedHeaders: ['Authorization'],
+  allowedHeaders: ['Authorization', 'Content-Type'],
 };
 
 app.use(cors(corsOptions));
