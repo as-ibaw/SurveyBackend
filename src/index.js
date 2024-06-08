@@ -6,7 +6,6 @@ import swaggerUi from 'swagger-ui-express';
 import Notification from './models/notification.models.js';
 import notificationRouter from './routes/notification.routes.js';
 import surveyRouter from './routes/survey.routes.js';
-import userRouter from './routes/user.routes.js';
 import { verifySocketJwt } from './utils/checkJwt.js';
 import connectDb from './utils/connectDb.js';
 import swaggerFile from './utils/swagger-output.json' assert { type: 'json' };
@@ -28,7 +27,6 @@ app.use(express.json());
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
 app.use('/surveys', surveyRouter);
-app.use('/users', userRouter);
 app.use('/notifications', notificationRouter);
 
 const server = app.listen(port, () => {
